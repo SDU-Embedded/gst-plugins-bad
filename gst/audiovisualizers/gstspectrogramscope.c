@@ -359,7 +359,7 @@ gst_spectrogram_scope_set_property (GObject * object, guint prop_id,
   }
 }
 
-static void
+static void static void
 gst_spectrogram_scope_get_property (GObject * object, guint prop_id,
     GValue * value, GParamSpec * pspec)
 {
