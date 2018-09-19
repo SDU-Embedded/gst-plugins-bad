@@ -43,19 +43,25 @@ struct _GstSpectrogramScope
   GstFFTS16Complex *freq_data;
 
   gint colormap;
-  gint32 (*colormap_function)(guint);
+    gint32 (*colormap_function) (guint);
 
-  GstMemory* fft_array;
+  GstMemory *fft_array;
   GstMapInfo fft_array_info;
 
   gfloat power_max;
   gfloat power_in_collumn;
-  guint32* power_value_array;
-  gfloat* similarity_scores;
+  guint32 *power_value_array;
+  gfloat *similarity_scores;
 
   gboolean above_threshold;
   guint32 hysteresis_time;
   guint32 event_counter;
+
+  gfloat geometric_mean;
+  gfloat aritmetic_mean;
+  gfloat entropy;
+  gfloat *entropy_scores;
+
 };
 
 struct _GstSpectrogramScopeClass
