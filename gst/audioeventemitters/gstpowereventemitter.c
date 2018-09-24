@@ -68,7 +68,7 @@ static void gst_power_event_emitter_get_property (GObject * object,
 static void gst_power_event_emitter_finalize (GObject * object);
 static gboolean gst_power_event_emitter_setup (GstAudioEventEmitter * scope);
 static gboolean gst_power_event_emitter_render (GstAudioEventEmitter * scope,
-    GstBuffer * audio, GstVideoFrame * video);
+    GstBuffer * audio, GstBuffer * text);
 static gint32 gst_power_event_emitter_greymap (gint);
 static gint32 gst_power_event_emitter_colormap (gint);
 
@@ -84,8 +84,7 @@ static GstStaticPadTemplate gst_power_event_emitter_src_template =
 GST_STATIC_PAD_TEMPLATE ("src",
     GST_PAD_SRC,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS (GST_VIDEO_CAPS_MAKE (RGB_ORDER))
-    );
+    GST_STATIC_CAPS_ANY);
 
 static GstStaticPadTemplate gst_power_event_emitter_sink_template =
 GST_STATIC_PAD_TEMPLATE ("sink",
@@ -176,8 +175,8 @@ gst_power_event_emitter_setup (GstAudioEventEmitter * bscope)
   GstPowerEventEmitter *scope = GST_POWER_EVENT_EMITTER (bscope);
   guint video_width, video_height;
 
-  video_width = GST_VIDEO_INFO_WIDTH (&bscope->vinfo);
-  video_height = GST_VIDEO_INFO_HEIGHT (&bscope->vinfo);
+  video_width = 300;            //GST_VIDEO_INFO_WIDTH (&bscope->vinfo);
+  video_height = 200;           //GST_VIDEO_INFO_HEIGHT (&bscope->vinfo);
 
   // Calculate number of samples needed per render() call
   bscope->req_spf = video_height * 2 - 2;
@@ -271,7 +270,7 @@ gst_power_event_emitter_colormap (gint color)
 
 static gboolean
 gst_power_event_emitter_render (GstAudioEventEmitter * bscope,
-    GstBuffer * audio, GstVideoFrame * video)
+    GstBuffer * audio, GstBuffer * text)
 {
   GstPowerEventEmitter *scope = GST_POWER_EVENT_EMITTER (bscope);
 
@@ -279,18 +278,18 @@ gst_power_event_emitter_render (GstAudioEventEmitter * bscope,
   GstFFTS16Complex *fdata = scope->freq_data;
 
   guint x = 0, y = 0, x_ptr = 0, index = 0;
-  guint video_width = GST_VIDEO_INFO_WIDTH (&bscope->vinfo);
-  guint video_height = GST_VIDEO_INFO_HEIGHT (&bscope->vinfo) - 1;
+  guint video_width = 300;      //GST_VIDEO_INFO_WIDTH (&bscope->vinfo);
+  guint video_height = 200;     //GST_VIDEO_INFO_HEIGHT (&bscope->vinfo) - 1;
   gfloat fr, fi, power, fft_intensity;
   GstMapInfo amap;
-  guint32 *vdata;
+  //guint32 *vdata;
   guint32 off = 0;
   gfloat entropy_score = 0;
   gint channels;
   static guint32 collumn_pointer = 0;
 
   // Map the video data
-  vdata = (guint32 *) GST_VIDEO_FRAME_PLANE_DATA (video, 0);
+  //vdata = (guint32 *) GST_VIDEO_FRAME_PLANE_DATA (video, 0);
 
   // Map the audio data
   gst_buffer_map (audio, &amap, GST_MAP_READ);
@@ -365,49 +364,49 @@ gst_power_event_emitter_render (GstAudioEventEmitter * bscope,
     scope->power_max = scope->power_in_collumn;
     //printf ("Power max: %f\n", scope->power_max);
   }
-  // For each bin in the spectrogram update the corresponding pixel in vdata
-  for (x = 0; x < video_width; x++) {
-    x_ptr = (collumn_pointer + x + 1) % video_width;
-    for (y = 0; y < video_height; y++) {
-      off = ((video_height - y - 1) * video_width) + x;
-      index = (y * video_width) + x_ptr;
-      vdata[off] =
-          (*scope->colormap_function) (scope->fft_array_info.data[index]);
-
-      // Plot power
-      power =
-          (((gfloat) scope->power_value_array[x_ptr]) * video_height) /
-          scope->power_max;
-      if (power >= video_height) {
-        power = video_height - 1;
-      }
-      if (power < 0) {
-        power = 0;
-      }
-      off = ((video_height - (guint32) power - 1) * (video_width)) + x;
-      vdata[off] = 0x00FF0000;  // Red
-
-      // Plot entropy
-      entropy_score = ((1 - scope->entropy_scores[x_ptr]) * (video_height - 1));
-      off = ((video_height - (guint32) entropy_score - 1) * (video_width)) + x;
-      vdata[off] = 0x0000FF00;  // Green
-
-      // Plot events
-      if (scope->power_value_array[x_ptr] > (scope->power_max / 16)) {
-        vdata[x] = 0x00FF00FF;  // Magenta
-      }
-
-      if (entropy_score > 0.9) {
-        vdata[(video_width * 2) + x] = 0x00FFFF00;      // Yellow
-      }
-
-      if (entropy_score > 0.9
-          && scope->power_value_array[x_ptr] > (scope->power_max / 16)) {
-        vdata[(video_width * 4) + x] = 0x00FFFFFF;      // White
-      }
-
-    }
-  }
+//  // For each bin in the spectrogram update the corresponding pixel in vdata
+//  for (x = 0; x < video_width; x++) {
+//    x_ptr = (collumn_pointer + x + 1) % video_width;
+//    for (y = 0; y < video_height; y++) {
+//      off = ((video_height - y - 1) * video_width) + x;
+//      index = (y * video_width) + x_ptr;
+//      vdata[off] =
+//          (*scope->colormap_function) (scope->fft_array_info.data[index]);
+//
+//      // Plot power
+//      power =
+//          (((gfloat) scope->power_value_array[x_ptr]) * video_height) /
+//          scope->power_max;
+//      if (power >= video_height) {
+//        power = video_height - 1;
+//      }
+//      if (power < 0) {
+//        power = 0;
+//      }
+//      off = ((video_height - (guint32) power - 1) * (video_width)) + x;
+//      vdata[off] = 0x00FF0000;  // Red
+//
+//      // Plot entropy
+//      entropy_score = ((1 - scope->entropy_scores[x_ptr]) * (video_height - 1));
+//      off = ((video_height - (guint32) entropy_score - 1) * (video_width)) + x;
+//      vdata[off] = 0x0000FF00;  // Green
+//
+//      // Plot events
+//      if (scope->power_value_array[x_ptr] > (scope->power_max / 16)) {
+//        vdata[x] = 0x00FF00FF;  // Magenta
+//      }
+//
+//      if (entropy_score > 0.9) {
+//        vdata[(video_width * 2) + x] = 0x00FFFF00;      // Yellow
+//      }
+//
+//      if (entropy_score > 0.9
+//          && scope->power_value_array[x_ptr] > (scope->power_max / 16)) {
+//        vdata[(video_width * 4) + x] = 0x00FFFFFF;      // White
+//      }
+//
+//    }
+//  }
 
   // Unmap the audio data
   gst_buffer_unmap (audio, &amap);
