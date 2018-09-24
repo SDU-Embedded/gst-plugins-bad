@@ -1,6 +1,6 @@
 foreach plugin : ['accurip', 'adpcmdec', 'adpcmenc', 'aiff', 'asfmux',
                   'audiobuffersplit', 'audiofxbad', 'audiomixmatrix',
-                  'audiolatency', 'audiovisualizers', 'autoconvert', 'bayer',
+                  'audiolatency', 'audioeventemitters', 'audiovisualizers', 'autoconvert', 'bayer',
                   'camerabin2', 'coloreffects', 'compositor', 'debugutils',
                   'dvbsuboverlay', 'dvdspu', 'faceoverlay', 'festival',
                   'fieldanalysis', 'freeverb', 'frei0r', 'gaudieffects', 'gdp',
