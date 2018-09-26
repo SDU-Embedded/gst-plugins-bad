@@ -69,18 +69,30 @@ typedef struct _GstPowerEventEmitterClass GstPowerEventEmitterClass;
 
 struct _GstPowerEventEmitter
 {
+  // Gstreamer
   GstElement element;
 
+  // Pads
   GstPad *sinkpad, *srcpad;
 
+  // FFT
   GstFFTS16 *fft_ctx;
   GstFFTS16Complex *freq_data;
-  guint number_of_bins;
-  guint len;
-  GstMemory* fft_array;
-  GstMapInfo fft_array_info;
 
+  // Propoerties
+  guint window_size; // Same as samples_per_fft
+  guint window_function;
+  guint overlap;
+  guint number_of_bins;
+ 
+  // Derived properties
   guint samples_per_fft;
+
+  // Event generation
+  gboolean in_event_state;
+  gfloat low_threshold;
+  gfloat high_threshold;
+  gfloat power_max;
 };
 
 struct _GstPowerEventEmitterClass 
