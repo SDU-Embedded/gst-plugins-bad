@@ -47,6 +47,8 @@
 #define __GST_POWER_EVENT_EMITTER_H__
 
 #include <gst/gst.h>
+#include <gst/fft/gstffts16.h>
+#include <stdio.h>
 
 G_BEGIN_DECLS
 
@@ -70,6 +72,15 @@ struct _GstPowerEventEmitter
   GstElement element;
 
   GstPad *sinkpad, *srcpad;
+
+  GstFFTS16 *fft_ctx;
+  GstFFTS16Complex *freq_data;
+  guint number_of_bins;
+  guint len;
+  GstMemory* fft_array;
+  GstMapInfo fft_array_info;
+
+  guint samples_per_fft;
 };
 
 struct _GstPowerEventEmitterClass 
