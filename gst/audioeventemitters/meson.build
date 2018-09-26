@@ -1,4 +1,5 @@
 event_sources = [
+  'plugin.c',
   'gstpowereventemitter.c'
 ]
 

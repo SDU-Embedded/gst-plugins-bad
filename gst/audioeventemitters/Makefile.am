@@ -1,6 +1,7 @@
 plugin_LTLIBRARIES = libgstaudioeventemitters.la
 
-libgstaudioeventemitters_la_SOURCES = gstpowereventemitter.c gstpowereventemitter.h 
+libgstaudioeventemitters_la_SOURCES = plugin.c \
+	gstpowereventemitter.c gstpowereventemitter.h
 
 libgstaudioeventemitters_la_CFLAGS = $(GST_PLUGINS_BAD_CFLAGS) \
 	$(GST_PLUGINS_BASE_CFLAGS) $(GST_BASE_CFLAGS) \

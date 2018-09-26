@@ -3395,6 +3395,22 @@ gst_spectra_scope_get_type
 </SECTION>
 
 <SECTION>                                                                        
+<FILE>element-powereventemitter</FILE>                                                
+<TITLE>powereventemitter</TITLE>                                                      
+GstPowerEventEmitter                                                                  
+<SUBSECTION Standard>                                                            
+GstPowerEventEmitterClass                                                             
+GST_POWER_EVENT_EMITTER                                                                
+GST_POWER_EVENT_EMITTER_CAST                                                           
+GST_IS_POWER_EVENT_EMITTER                                                             
+GST_POWER_EVENT_EMITTER_CLASS                                                          
+GST_IS_POWER_EVENT_EMITTER_CLASS                                                       
+GST_TYPE_POWER_EVENT_EMITTER                                                           
+<SUBSECTION Private>      
+gst_power_event_emitter_get_type
+</SECTION> 
+
+<SECTION>                                                                        
 <FILE>element-spectrogramscope</FILE>                                                
 <TITLE>spectrogramscope</TITLE>                                                      
 GstSpectrogramScope                                                                  

@@ -44,14 +44,14 @@
  */
 
 /**
- * SECTION:element-plugin
+ * SECTION:element-emitter
  *
- * FIXME:Describe plugin here.
+ * FIXME:Describe emitter here.
  *
  * <refsect2>
  * <title>Example launch line</title>
  * |[
- * gst-launch -v -m fakesrc ! plugin ! fakesink silent=TRUE
+ * gst-launch -v -m fakesrc ! emitter ! fakesink silent=TRUE
  * ]|
  * </refsect2>
  */
@@ -61,11 +61,10 @@
 #endif
 
 #include <gst/gst.h>
-
 #include "gstpowereventemitter.h"
 
-GST_DEBUG_CATEGORY_STATIC (gst_plugin_template_debug);
-#define GST_CAT_DEFAULT gst_plugin_template_debug
+GST_DEBUG_CATEGORY_STATIC (gst_power_event_emitter_debug);
+#define GST_CAT_DEFAULT gst_power_event_emitter_debug
 
 /* Filter signals and args */
 enum
@@ -87,7 +86,11 @@ enum
 static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
     GST_PAD_SINK,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS ("ANY")
+    GST_STATIC_CAPS ("audio/x-raw, "
+        "format = (string) S16LE, "
+        "layout = (string) interleaved, "
+        "rate = (int) [ 8000, 96000 ], "
+        "channels = (int) 2, " "channel-mask = (bitmask) 0x3")
     );
 
 static GstStaticPadTemplate src_factory = GST_STATIC_PAD_TEMPLATE ("src",
@@ -96,24 +99,24 @@ static GstStaticPadTemplate src_factory = GST_STATIC_PAD_TEMPLATE ("src",
     GST_STATIC_CAPS ("ANY")
     );
 
-#define gst_plugin_template_parent_class parent_class
-G_DEFINE_TYPE (GstPluginTemplate, gst_plugin_template, GST_TYPE_ELEMENT);
+#define gst_power_event_emitter_parent_class parent_class
+G_DEFINE_TYPE (GstPowerEventEmitter, gst_power_event_emitter, GST_TYPE_ELEMENT);
 
-static void gst_plugin_template_set_property (GObject * object, guint prop_id,
-    const GValue * value, GParamSpec * pspec);
-static void gst_plugin_template_get_property (GObject * object, guint prop_id,
-    GValue * value, GParamSpec * pspec);
-
-static gboolean gst_plugin_template_sink_event (GstPad * pad,
+static void gst_power_event_emitter_set_property (GObject * object,
+    guint prop_id, const GValue * value, GParamSpec * pspec);
+static void gst_power_event_emitter_get_property (GObject * object,
+    guint prop_id, GValue * value, GParamSpec * pspec);
+static gboolean gst_power_event_emitter_sink_event (GstPad * pad,
     GstObject * parent, GstEvent * event);
-static GstFlowReturn gst_plugin_template_chain (GstPad * pad,
+static GstFlowReturn gst_power_event_emitter_chain (GstPad * pad,
     GstObject * parent, GstBuffer * buf);
+//gboolean gst_power_event_emitter_plugin_init (GstPlugin * plugin);
 
 /* GObject vmethod implementations */
 
-/* initialize the plugin's class */
+/* initialize the emitter's class */
 static void
-gst_plugin_template_class_init (GstPluginTemplateClass * klass)
+gst_power_event_emitter_class_init (GstPowerEventEmitterClass * klass)
 {
   GObjectClass *gobject_class;
   GstElementClass *gstelement_class;
@@ -121,8 +124,8 @@ gst_plugin_template_class_init (GstPluginTemplateClass * klass)
   gobject_class = (GObjectClass *) klass;
   gstelement_class = (GstElementClass *) klass;
 
-  gobject_class->set_property = gst_plugin_template_set_property;
-  gobject_class->get_property = gst_plugin_template_get_property;
+  gobject_class->set_property = gst_power_event_emitter_set_property;
+  gobject_class->get_property = gst_power_event_emitter_get_property;
 
   g_object_class_install_property (gobject_class, PROP_SILENT,
       g_param_spec_boolean ("silent", "Silent", "Produce verbose output ?",
@@ -145,13 +148,13 @@ gst_plugin_template_class_init (GstPluginTemplateClass * klass)
  * initialize instance structure
  */
 static void
-gst_plugin_template_init (GstPluginTemplate * filter)
+gst_power_event_emitter_init (GstPowerEventEmitter * filter)
 {
   filter->sinkpad = gst_pad_new_from_static_template (&sink_factory, "sink");
   gst_pad_set_event_function (filter->sinkpad,
-      GST_DEBUG_FUNCPTR (gst_plugin_template_sink_event));
+      GST_DEBUG_FUNCPTR (gst_power_event_emitter_sink_event));
   gst_pad_set_chain_function (filter->sinkpad,
-      GST_DEBUG_FUNCPTR (gst_plugin_template_chain));
+      GST_DEBUG_FUNCPTR (gst_power_event_emitter_chain));
   GST_PAD_SET_PROXY_CAPS (filter->sinkpad);
   gst_element_add_pad (GST_ELEMENT (filter), filter->sinkpad);
 
@@ -159,18 +162,16 @@ gst_plugin_template_init (GstPluginTemplate * filter)
   GST_PAD_SET_PROXY_CAPS (filter->srcpad);
   gst_element_add_pad (GST_ELEMENT (filter), filter->srcpad);
 
-  filter->silent = FALSE;
 }
 
 static void
-gst_plugin_template_set_property (GObject * object, guint prop_id,
+gst_power_event_emitter_set_property (GObject * object, guint prop_id,
     const GValue * value, GParamSpec * pspec)
 {
-  GstPluginTemplate *filter = GST_PLUGIN_TEMPLATE (object);
+  GstPowerEventEmitter *filter = GST_POWER_EVENT_EMITTER (object);
 
   switch (prop_id) {
     case PROP_SILENT:
-      filter->silent = g_value_get_boolean (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -179,14 +180,13 @@ gst_plugin_template_set_property (GObject * object, guint prop_id,
 }
 
 static void
-gst_plugin_template_get_property (GObject * object, guint prop_id,
+gst_power_event_emitter_get_property (GObject * object, guint prop_id,
     GValue * value, GParamSpec * pspec)
 {
-  GstPluginTemplate *filter = GST_PLUGIN_TEMPLATE (object);
+  GstPowerEventEmitter *filter = GST_POWER_EVENT_EMITTER (object);
 
   switch (prop_id) {
     case PROP_SILENT:
-      g_value_set_boolean (value, filter->silent);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -198,13 +198,13 @@ gst_plugin_template_get_property (GObject * object, guint prop_id,
 
 /* this function handles sink events */
 static gboolean
-gst_plugin_template_sink_event (GstPad * pad, GstObject * parent,
+gst_power_event_emitter_sink_event (GstPad * pad, GstObject * parent,
     GstEvent * event)
 {
-  GstPluginTemplate *filter;
+  GstPowerEventEmitter *filter;
   gboolean ret;
 
-  filter = GST_PLUGIN_TEMPLATE (parent);
+  filter = GST_POWER_EVENT_EMITTER (parent);
 
   GST_LOG_OBJECT (filter, "Received %s event: %" GST_PTR_FORMAT,
       GST_EVENT_TYPE_NAME (event), event);
@@ -232,17 +232,44 @@ gst_plugin_template_sink_event (GstPad * pad, GstObject * parent,
  * this function does the actual processing
  */
 static GstFlowReturn
-gst_plugin_template_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
+gst_power_event_emitter_chain (GstPad * pad, GstObject * parent,
+    GstBuffer * input_buffer)
 {
-  GstPluginTemplate *filter;
+  // Variables
+  GstFlowReturn return_value;
+  GstBuffer *text_buffer;
+  GstMemory *text_memory;
+  GstMapInfo text_map, audio_map;
+  GstPowerEventEmitter *event_emitter_handle;
 
-  filter = GST_PLUGIN_TEMPLATE (parent);
+  // Parse event emitter object
+  event_emitter_handle = GST_POWER_EVENT_EMITTER (parent);
 
-  if (filter->silent == FALSE)
-    g_print ("I'm plugged, therefore I'm in.\n");
+  // Prepare input buffer
+  gst_buffer_map (input_buffer, &audio_map, GST_MAP_READ);
 
-  /* just push out the incoming buffer without touching it */
-  return gst_pad_push (filter->srcpad, buf);
+  // Prepare output buffer
+  text_buffer = gst_buffer_new ();
+  text_memory = gst_allocator_alloc (NULL, 6, NULL);
+  gst_buffer_append_memory (text_buffer, text_memory);
+
+  // Fill output buffer
+  gst_buffer_map (text_buffer, &text_map, GST_MAP_WRITE);
+  text_map.data[0] = 'T';
+  text_map.data[1] = 'E';
+  text_map.data[2] = 'S';
+  text_map.data[3] = 'T';
+  text_map.data[4] = '\n';
+  text_map.data[5] = '\0';
+  gst_buffer_unmap (text_buffer, &text_map);
+
+  // Push the buffer to the src pad
+  return_value = gst_pad_push (event_emitter_handle->srcpad, text_buffer);
+
+  // Clean up
+  gst_buffer_unmap (input_buffer, &audio_map);
+
+  return return_value;
 }
 
 
@@ -250,35 +277,16 @@ gst_plugin_template_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
  * initialize the plug-in itself
  * register the element factories and other features
  */
-static gboolean
-plugin_init (GstPlugin * plugin)
+gboolean
+gst_power_event_emitter_plugin_init (GstPlugin * plugin)
 {
   /* debug category for fltering log messages
    *
    * exchange the string 'Template plugin' with your description
    */
-  GST_DEBUG_CATEGORY_INIT (gst_plugin_template_debug, "plugin",
-      0, "Template plugin");
+  GST_DEBUG_CATEGORY_INIT (gst_power_event_emitter_debug, "powereventemitter",
+      0, "Power event emitter");
 
-  return gst_element_register (plugin, "plugin", GST_RANK_NONE,
-      GST_TYPE_PLUGIN_TEMPLATE);
+  return gst_element_register (plugin, "powereventemitter", GST_RANK_NONE,
+      GST_TYPE_POWER_EVENT_EMITTER);
 }
-
-/* PACKAGE: this is usually set by autotools depending on some _INIT macro
- * in configure.ac and then written into and defined in config.h, but we can
- * just set it ourselves here in case someone doesn't use autotools to
- * compile this code. GST_PLUGIN_DEFINE needs PACKAGE to be defined.
- */
-#ifndef PACKAGE
-#define PACKAGE "myfirstplugin"
-#endif
-
-/* gstreamer looks for this structure to register plugins
- *
- * exchange the string 'Template plugin' with your plugin description
- */
-GST_PLUGIN_DEFINE (GST_VERSION_MAJOR,
-    GST_VERSION_MINOR,
-    plugin,
-    "Template plugin",
-    plugin_init, VERSION, "LGPL", "GStreamer", "http://gstreamer.net/")

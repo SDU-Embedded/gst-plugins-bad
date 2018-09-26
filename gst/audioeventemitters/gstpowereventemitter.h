@@ -43,44 +43,43 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#ifndef __GST_PLUGIN_TEMPLATE_H__
-#define __GST_PLUGIN_TEMPLATE_H__
+#ifndef __GST_POWER_EVENT_EMITTER_H__
+#define __GST_POWER_EVENT_EMITTER_H__
 
 #include <gst/gst.h>
 
 G_BEGIN_DECLS
 
 /* #defines don't like whitespacey bits */
-#define GST_TYPE_PLUGIN_TEMPLATE \
-  (gst_plugin_template_get_type())
-#define GST_PLUGIN_TEMPLATE(obj) \
-  (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_PLUGIN_TEMPLATE,GstPluginTemplate))
-#define GST_PLUGIN_TEMPLATE_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_PLUGIN_TEMPLATE,GstPluginTemplateClass))
-#define GST_IS_PLUGIN_TEMPLATE(obj) \
-  (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_PLUGIN_TEMPLATE))
-#define GST_IS_PLUGIN_TEMPLATE_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_PLUGIN_TEMPLATE))
+#define GST_TYPE_POWER_EVENT_EMITTER \
+  (gst_power_event_emitter_get_type())
+#define GST_POWER_EVENT_EMITTER(obj) \
+  (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_POWER_EVENT_EMITTER,GstPowerEventEmitter))
+#define GST_POWER_EVENT_EMITTER_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_POWER_EVENT_EMITTER,GstPowerEventEmitterClass))
+#define GST_IS_POWER_EVENT_EMITTER(obj) \
+  (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_POWER_EVENT_EMITTER))
+#define GST_IS_POWER_EVENT_EMITTER_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_POWER_EVENT_EMITTER))
 
-typedef struct _GstPluginTemplate      GstPluginTemplate;
-typedef struct _GstPluginTemplateClass GstPluginTemplateClass;
+typedef struct _GstPowerEventEmitter      GstPowerEventEmitter;
+typedef struct _GstPowerEventEmitterClass GstPowerEventEmitterClass;
 
-struct _GstPluginTemplate
+struct _GstPowerEventEmitter
 {
   GstElement element;
 
   GstPad *sinkpad, *srcpad;
-
-  gboolean silent;
 };
 
-struct _GstPluginTemplateClass 
+struct _GstPowerEventEmitterClass 
 {
   GstElementClass parent_class;
 };
 
-GType gst_plugin_template_get_type (void);
+GType gst_power_event_emitter_get_type (void);
+gboolean gst_power_event_emitter_plugin_init (GstPlugin * plugin);
 
 G_END_DECLS
 
-#endif /* __GST_PLUGIN_TEMPLATE_H__ */
+#endif /* __GST_POWER_EVENT_EMITTER_H__ */
