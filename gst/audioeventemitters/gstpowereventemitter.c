@@ -311,18 +311,20 @@ gst_power_event_emitter_chain (GstPad * pad, GstObject * object,
   gint16 *audio_data;
 
   // Variables general
-  guint sample;
+  guint sample, i;
   gfloat power;
   GstFlowReturn return_value;
   GstPowerEventEmitter *object_handle;
-
-  return_value = GST_FLOW_ERROR;
+  return_value = GST_FLOW_OK;
 
   // Parse object
   object_handle = GST_POWER_EVENT_EMITTER (object);
 
   // Prepare input buffer
   gst_buffer_map (input_buffer, &audio_map, GST_MAP_READ);
+
+  // Clear output buffer
+  object_handle->text_pre_buffer[0] = '\0';
 
   // Pass chunks of data to check TODO: Currently skips samples that exeed largest multiple of samples_per_fft
   power = 0;
@@ -346,37 +348,38 @@ gst_power_event_emitter_chain (GstPad * pad, GstObject * object,
     object_handle->power_max = power;
     object_handle->low_threshold = (guint) (power * 0.1);
     object_handle->high_threshold = (guint) (power * 0.8);
-    g_print ("New max: %f low: %f high: %f\n", object_handle->power_max,
-        object_handle->low_threshold, object_handle->high_threshold);
+    //g_print ("New max: %f low: %f high: %f\n", object_handle->power_max,
+    //  object_handle->low_threshold, object_handle->high_threshold);
   }
-// TODO: Insert temporary buffer or find a way to change buffer size
-//
-//
-  // Prepare output buffer
-  text_buffer = gst_buffer_new ();
-  text_memory = gst_allocator_alloc (NULL, 30, NULL);
-  gst_buffer_append_memory (text_buffer, text_memory);
-
   // Fill output buffer
-  gst_buffer_map (text_buffer, &text_map, GST_MAP_WRITE);
-  //sprintf ((char *) text_map.data, "\nPower: %d",(guint)power);
   if ((object_handle->in_event_state) && (power < object_handle->low_threshold)) {
     object_handle->in_event_state = FALSE;
-    sprintf ((char *) text_map.data, "Offset event %f\n", power);
-  }
-
-  else if ((!object_handle->in_event_state)
+    //sprintf ((char *) object_handle->text_pre_buffer, "Offset event %f\n", power);
+    sprintf ((char *) object_handle->text_pre_buffer, "offset\n");
+  } else if ((!object_handle->in_event_state)
       && (power > object_handle->high_threshold)) {
     object_handle->in_event_state = TRUE;
-    sprintf ((char *) text_map.data, "Onset event %f\n", power);
-  } else {
-    //sprintf ((char *) text_map.data, "No event %f\n", power);       
-    //text_map.data[0] = '\0';       
+    //sprintf ((char *) object_handle->text_pre_buffer, "Onset event %f\n", power);
+    sprintf ((char *) object_handle->text_pre_buffer, "onset\n");
   }
-  gst_buffer_unmap (text_buffer, &text_map);
+  // Fill output buffer
+  object_handle->text_pre_buffer_length =
+      strlen (object_handle->text_pre_buffer);
 
-  return_value = gst_pad_push (object_handle->srcpad, text_buffer);
+  if (object_handle->text_pre_buffer_length) {
+    // Prepare output buffer
+    text_buffer = gst_buffer_new ();
+    text_memory = gst_allocator_alloc (NULL, 30, NULL);
+    gst_buffer_append_memory (text_buffer, text_memory);
 
+    gst_buffer_map (text_buffer, &text_map, GST_MAP_WRITE);
+    for (i = 0; i <= object_handle->text_pre_buffer_length; i++) {
+      text_map.data[i] = object_handle->text_pre_buffer[i];
+    }
+    gst_buffer_unmap (text_buffer, &text_map);
+
+    return_value = gst_pad_push (object_handle->srcpad, text_buffer);
+  }
   // Clean up
   gst_buffer_unmap (input_buffer, &audio_map);
 

@@ -49,7 +49,7 @@
 #include <gst/gst.h>
 #include <gst/fft/gstffts16.h>
 #include <stdio.h>
-
+#include <string.h>
 G_BEGIN_DECLS
 
 /* #defines don't like whitespacey bits */
@@ -93,6 +93,11 @@ struct _GstPowerEventEmitter
   gfloat low_threshold;
   gfloat high_threshold;
   gfloat power_max;
+
+  // String handling
+  gchar text_pre_buffer[100];
+  guint text_pre_buffer_length;
+
 };
 
 struct _GstPowerEventEmitterClass 
