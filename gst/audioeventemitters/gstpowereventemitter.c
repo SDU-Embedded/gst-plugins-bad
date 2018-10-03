@@ -122,7 +122,10 @@ static void gst_power_event_emitter_get_property (GObject * object,
     guint prop_id, GValue * value, GParamSpec * pspec);
 static GstFlowReturn gst_power_event_emitter_chain (GstPad * pad,
     GstObject * object, GstBuffer * buf);
-gfloat gst_power_event_emitter_check (GstObject * object, gint16 * audio_data);
+gfloat gst_power_event_emitter_get_power (GstPowerEventEmitter * object_handle,
+    gint16 * audio_data);
+GstFlowReturn gst_power_event_emitter_push_event (GstPowerEventEmitter *
+    object_handle);
 
 // Functions
 static GType
@@ -302,20 +305,16 @@ gst_power_event_emitter_chain (GstPad * pad, GstObject * object,
   // Variables for input buffer
   GstMapInfo audio_map;
 
-  // Variables for output buffer
-  GstBuffer *text_buffer;
-  GstMemory *text_memory;
-  GstMapInfo text_map;
 
   // Variables for FFT
   gint16 *audio_data;
 
   // Variables general
-  guint sample, i;
+  guint sample;
   gfloat power;
   GstFlowReturn return_value;
   GstPowerEventEmitter *object_handle;
-  return_value = GST_FLOW_OK;
+  return_value = GST_FLOW_ERROR;
 
   // Parse object
   object_handle = GST_POWER_EVENT_EMITTER (object);
@@ -338,65 +337,79 @@ gst_power_event_emitter_chain (GstPad * pad, GstObject * object,
         object_handle->samples_per_fft);
 
     // Check data
-    power += gst_power_event_emitter_check (object, audio_data);
+    power += gst_power_event_emitter_get_power (object_handle, audio_data);
 
     // Free data
     g_free (audio_data);
   }
 
+  // Check for new maximum
   if (power > object_handle->power_max) {
     object_handle->power_max = power;
     object_handle->low_threshold = (guint) (power * 0.1);
     object_handle->high_threshold = (guint) (power * 0.8);
-    //g_print ("New max: %f low: %f high: %f\n", object_handle->power_max,
-    //  object_handle->low_threshold, object_handle->high_threshold);
   }
   // Fill output buffer
   if ((object_handle->in_event_state) && (power < object_handle->low_threshold)) {
     object_handle->in_event_state = FALSE;
-    //sprintf ((char *) object_handle->text_pre_buffer, "Offset event %f\n", power);
     sprintf ((char *) object_handle->text_pre_buffer, "offset\n");
   } else if ((!object_handle->in_event_state)
       && (power > object_handle->high_threshold)) {
     object_handle->in_event_state = TRUE;
-    //sprintf ((char *) object_handle->text_pre_buffer, "Onset event %f\n", power);
     sprintf ((char *) object_handle->text_pre_buffer, "onset\n");
   }
-  // Fill output buffer
-  object_handle->text_pre_buffer_length =
-      strlen (object_handle->text_pre_buffer);
+  // Push event
+  return_value = gst_power_event_emitter_push_event (object_handle);
 
-  if (object_handle->text_pre_buffer_length) {
-    // Prepare output buffer
-    text_buffer = gst_buffer_new ();
-    text_memory = gst_allocator_alloc (NULL, 30, NULL);
-    gst_buffer_append_memory (text_buffer, text_memory);
-
-    gst_buffer_map (text_buffer, &text_map, GST_MAP_WRITE);
-    for (i = 0; i <= object_handle->text_pre_buffer_length; i++) {
-      text_map.data[i] = object_handle->text_pre_buffer[i];
-    }
-    gst_buffer_unmap (text_buffer, &text_map);
-
-    return_value = gst_pad_push (object_handle->srcpad, text_buffer);
-  }
   // Clean up
   gst_buffer_unmap (input_buffer, &audio_map);
 
   return return_value;
 }
 
+GstFlowReturn
+gst_power_event_emitter_push_event (GstPowerEventEmitter * object_handle)
+{
+  // Variables for output buffer
+  GstBuffer *text_buffer;
+  GstMemory *text_memory;
+  GstMapInfo text_map;
+  guint i;
+
+  // Check buffer length
+  object_handle->text_pre_buffer_length =
+      strlen (object_handle->text_pre_buffer);
+  if (object_handle->text_pre_buffer_length) {
+
+    // Prepare output buffer
+    text_buffer = gst_buffer_new ();
+    text_memory = gst_allocator_alloc (NULL, 30, NULL);
+    gst_buffer_append_memory (text_buffer, text_memory);
+
+    // Fill output buffer
+    gst_buffer_map (text_buffer, &text_map, GST_MAP_WRITE);
+    for (i = 0; i <= object_handle->text_pre_buffer_length; i++) {
+      text_map.data[i] = object_handle->text_pre_buffer[i];
+    }
+    gst_buffer_unmap (text_buffer, &text_map);
+
+    // Push to src pad
+    return gst_pad_push (object_handle->srcpad, text_buffer);
+  } else {
+    return GST_FLOW_OK;
+  }
+
+}
+
+
 gfloat
-gst_power_event_emitter_check (GstObject * object, gint16 * audio_data)
+gst_power_event_emitter_get_power (GstPowerEventEmitter * object_handle,
+    gint16 * audio_data)
 {
   // Variables
   guint bin;
   gfloat f_real, f_imaginary, power;
-  GstPowerEventEmitter *object_handle;
   GstFFTS16Complex *fdata;
-
-  // Parse object
-  object_handle = GST_POWER_EVENT_EMITTER (object);
 
   // Point to pre-allocated memory
   fdata = object_handle->freq_data;
