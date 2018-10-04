@@ -241,10 +241,10 @@ gst_power_event_emitter_init (GstPowerEventEmitter * object_handle)
       g_new (GstFFTS16Complex, (object_handle->samples_per_fft / 2) + 1);
 
   // Print settings
-  g_print ("Window function: %d\n", object_handle->window_function);
-  g_print ("Overlap: %d\n", object_handle->overlap);
-  g_print ("Number of bins: %d\n", object_handle->number_of_bins);
-  g_print ("Window size(derived): %d\n", object_handle->samples_per_fft);
+  //g_print ("Window function: %d\n", object_handle->window_function);
+  //g_print ("Overlap: %d\n", object_handle->overlap);
+  //g_print ("Number of bins: %d\n", object_handle->number_of_bins);
+  //g_print ("Window size(derived): %d\n", object_handle->samples_per_fft);
 
 }
 
