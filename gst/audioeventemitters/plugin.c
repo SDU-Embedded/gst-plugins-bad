@@ -25,6 +25,7 @@
 #include <gst/gst.h>
 
 #include "gstpowereventemitter.h"
+#include "gstentropyeventemitter.h"
 
 static gboolean
 plugin_init (GstPlugin * plugin)
@@ -32,6 +33,7 @@ plugin_init (GstPlugin * plugin)
   gboolean res = TRUE;
 
   res &= gst_power_event_emitter_plugin_init (plugin);
+  res &= gst_entropy_event_emitter_plugin_init (plugin);
 
   return res;
 }

@@ -1,6 +1,7 @@
 event_sources = [
   'plugin.c',
-  'gstpowereventemitter.c'
+  'gstpowereventemitter.c',
+  'gstentropyeventemitter.c'
 ]
 
 gstaudioeventemitters = library('gstaudioeventemitters',
