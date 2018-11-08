@@ -103,7 +103,7 @@ static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
         "format = (string) S16LE, "
         "layout = (string) interleaved, "
         "rate = (int) [ 8000, 96000 ], "
-        "channels = (int) 1, " "channel-mask = (bitmask) 0x3")
+        "channels = (int) 2, " "channel-mask = (bitmask) 0x3")
     );
 
 static GstStaticPadTemplate src_factory = GST_STATIC_PAD_TEMPLATE ("src",

@@ -211,7 +211,7 @@ gst_power_event_emitter_init (GstPowerEventEmitter * object_handle)
       gst_fft_next_fast_length ((2 * object_handle->number_of_bins) - 2);
 
   // Init event variables
-  object_handle->power_max = 10;
+  object_handle->power_max = 1;
   object_handle->low_threshold = 2;
   object_handle->high_threshold = 8;
   object_handle->in_event_state = FALSE;
@@ -348,6 +348,7 @@ gst_power_event_emitter_chain (GstPad * pad, GstObject * object,
     object_handle->power_max = power;
     object_handle->low_threshold = (guint) (power * 0.1);
     object_handle->high_threshold = (guint) (power * 0.8);
+    g_print ("Setting new max: %f\n", object_handle->power_max);
   }
   // Fill output buffer
   if ((object_handle->in_event_state) && (power < object_handle->low_threshold)) {
