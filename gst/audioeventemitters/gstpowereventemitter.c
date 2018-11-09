@@ -103,7 +103,7 @@ static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
         "format = (string) S16LE, "
         "layout = (string) interleaved, "
         "rate = (int) [ 8000, 96000 ], "
-        "channels = (int) 1, " "channel-mask = (bitmask) 0x3")
+        "channels = (int) 2, " "channel-mask = (bitmask) 0x3")
     );
 
 static GstStaticPadTemplate src_factory = GST_STATIC_PAD_TEMPLATE ("src",
@@ -213,7 +213,7 @@ gst_power_event_emitter_init (GstPowerEventEmitter * object_handle)
   // Init event variables
   object_handle->power_max = 1;
   object_handle->low_threshold = 2;
-  object_handle->high_threshold = 8;
+  object_handle->high_threshold = 5;
   object_handle->in_event_state = FALSE;
 
   // Init sink
