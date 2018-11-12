@@ -100,7 +100,7 @@ static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
     GST_PAD_SINK,
     GST_PAD_ALWAYS,
     GST_STATIC_CAPS ("audio/x-raw, "
-        "format = (string) S16LE, "
+        "format = (string) S16BE, "
         "layout = (string) interleaved, "
         "rate = (int) [ 8000, 96000 ], "
         "channels = (int) 2, " "channel-mask = (bitmask) 0x3")
@@ -211,9 +211,9 @@ gst_power_event_emitter_init (GstPowerEventEmitter * object_handle)
       gst_fft_next_fast_length ((2 * object_handle->number_of_bins) - 2);
 
   // Init event variables
-  object_handle->power_max = 1;
+  object_handle->power_max = 10;
   object_handle->low_threshold = 2;
-  object_handle->high_threshold = 5;
+  object_handle->high_threshold = 8;
   object_handle->in_event_state = FALSE;
 
   // Init sink
