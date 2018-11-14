@@ -79,7 +79,9 @@ enum
   PROP_WINDOW_SIZE,
   PROP_WINDOW_FUNCTION,
   PROP_OVERLAP,
-  PROP_NUMBER_OF_BINS
+  PROP_NUMBER_OF_BINS,
+  PROP_THRESHOLD_LOW,
+  PROP_THRESHOLD_HIGH
 };
 
 // Enumeration of the options for the window function property
@@ -100,7 +102,7 @@ static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
     GST_PAD_SINK,
     GST_PAD_ALWAYS,
     GST_STATIC_CAPS ("audio/x-raw, "
-        "format = (string) S16BE, "
+        "format = (string) S16LE, "
         "layout = (string) interleaved, "
         "rate = (int) [ 8000, 96000 ], "
         "channels = (int) 2, " "channel-mask = (bitmask) 0x3")
@@ -184,6 +186,16 @@ gst_power_event_emitter_class_init (GstPowerEventEmitterClass * klass)
           "Sets the overlap between FFT windows", 0, 100, 0,
           G_PARAM_READWRITE));
 
+  g_object_class_install_property (gobject_class, PROP_THRESHOLD_HIGH,
+      g_param_spec_float ("threshold_high", "Threshold_high",
+          "Sets the percentage threshold for onset", 0.0, 100.0, 5.0,
+          G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class, PROP_THRESHOLD_LOW,
+      g_param_spec_float ("threshold_low", "Threshold_low",
+          "Sets the percentage threshold for offset", 0.0, 100.0, 1.0,
+          G_PARAM_READWRITE));
+
   g_object_class_install_property (gobject_class, PROP_NUMBER_OF_BINS,
       g_param_spec_uint ("bins", "Number of bins",
           "Sets the number of frequency bins in FFT", 50, 1000, 100,
@@ -192,7 +204,7 @@ gst_power_event_emitter_class_init (GstPowerEventEmitterClass * klass)
   // Set metadata
   gst_element_class_set_static_metadata (gstelement_class,
       "Power event emitter", "Feature extraction",
-      "Event emitter based on power over threshold",
+      "Event emitter based on power threshold",
       "Leon Bonde Larsen <leon@bondelarsen.dk>");
 
   // Init pads
@@ -211,9 +223,9 @@ gst_power_event_emitter_init (GstPowerEventEmitter * object_handle)
       gst_fft_next_fast_length ((2 * object_handle->number_of_bins) - 2);
 
   // Init event variables
-  object_handle->power_max = 10;
-  object_handle->low_threshold = 2;
-  object_handle->high_threshold = 8;
+  object_handle->power_max = 0;
+  object_handle->low_threshold = 0;
+  object_handle->high_threshold = 0;
   object_handle->in_event_state = FALSE;
 
   // Init sink
@@ -245,6 +257,8 @@ gst_power_event_emitter_init (GstPowerEventEmitter * object_handle)
   //g_print ("Overlap: %d\n", object_handle->overlap);
   //g_print ("Number of bins: %d\n", object_handle->number_of_bins);
   //g_print ("Window size(derived): %d\n", object_handle->samples_per_fft);
+  //g_print ("Low threshold: %f\n", object_handle->threshold_percentage_low);
+  //g_print ("High threshold: %f\n", object_handle->threshold_percentage_high);
 
 }
 
@@ -266,6 +280,12 @@ gst_power_event_emitter_set_property (GObject * object, guint prop_id,
       break;
     case PROP_NUMBER_OF_BINS:
       object_handle->number_of_bins = g_value_get_int (value);
+      break;
+    case PROP_THRESHOLD_LOW:
+      object_handle->threshold_percentage_low = g_value_get_float (value);
+      break;
+    case PROP_THRESHOLD_HIGH:
+      object_handle->threshold_percentage_high = g_value_get_float (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -291,6 +311,12 @@ gst_power_event_emitter_get_property (GObject * object, guint prop_id,
       break;
     case PROP_NUMBER_OF_BINS:
       g_value_set_int (value, object_handle->number_of_bins);
+      break;
+    case PROP_THRESHOLD_LOW:
+      g_value_set_float (value, object_handle->threshold_percentage_low);
+      break;
+    case PROP_THRESHOLD_HIGH:
+      g_value_set_float (value, object_handle->threshold_percentage_high);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -346,10 +372,14 @@ gst_power_event_emitter_chain (GstPad * pad, GstObject * object,
   // Check for new maximum
   if (power > object_handle->power_max) {
     object_handle->power_max = power;
-    object_handle->low_threshold = (guint) (power * 0.1);
-    object_handle->high_threshold = (guint) (power * 0.8);
-    g_print ("Setting new max: %f\n", object_handle->power_max);
+    object_handle->low_threshold =
+        power * object_handle->threshold_percentage_low / 100.0;
+    object_handle->high_threshold =
+        power * object_handle->threshold_percentage_high / 100.0;
+    //g_print ("Setting new max: %f Low: %f High: %f\n", object_handle->power_max,object_handle->threshold_percentage_low, object_handle->threshold_percentage_high);
   }
+  //g_print("Power: %f Low: %f High: %f\n", power, object_handle->low_threshold, object_handle->high_threshold);
+
   // Fill output buffer
   if ((object_handle->in_event_state) && (power < object_handle->low_threshold)) {
     object_handle->in_event_state = FALSE;
