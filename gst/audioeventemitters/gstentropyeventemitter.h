@@ -84,7 +84,9 @@ struct _GstEntropyEventEmitter
   guint window_function;
   guint overlap;
   guint number_of_bins;
- 
+  gfloat threshold_percentage_high;
+  gfloat threshold_percentage_low;
+
   // Derived properties
   guint samples_per_fft;
 

@@ -79,7 +79,9 @@ enum
   PROP_WINDOW_SIZE,
   PROP_WINDOW_FUNCTION,
   PROP_OVERLAP,
-  PROP_NUMBER_OF_BINS
+  PROP_NUMBER_OF_BINS,
+  PROP_THRESHOLD_LOW,
+  PROP_THRESHOLD_HIGH
 };
 
 // Enumeration of the options for the window function property
@@ -190,6 +192,13 @@ gst_entropy_event_emitter_class_init (GstEntropyEventEmitterClass * klass)
           "Sets the number of frequency bins in FFT", 50, 1000, 100,
           G_PARAM_READWRITE));
 
+  g_object_class_install_property (gobject_class, PROP_THRESHOLD_HIGH,
+      g_param_spec_float ("threshold_high", "Threshold_high",
+          "Sets the threshold for onset", 0.0, 100.0, 15.0, G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class, PROP_THRESHOLD_LOW,
+      g_param_spec_float ("threshold_low", "Threshold_low",
+          "Sets the threshold for offset", 0.0, 100.0, 5.0, G_PARAM_READWRITE));
   // Set metadata
   gst_element_class_set_static_metadata (gstelement_class,
       "Entropy event emitter", "Feature extraction",
@@ -268,6 +277,12 @@ gst_entropy_event_emitter_set_property (GObject * object, guint prop_id,
     case PROP_NUMBER_OF_BINS:
       object_handle->number_of_bins = g_value_get_int (value);
       break;
+    case PROP_THRESHOLD_LOW:
+      object_handle->threshold_percentage_low = g_value_get_float (value);
+      break;
+    case PROP_THRESHOLD_HIGH:
+      object_handle->threshold_percentage_high = g_value_get_float (value);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -292,6 +307,12 @@ gst_entropy_event_emitter_get_property (GObject * object, guint prop_id,
       break;
     case PROP_NUMBER_OF_BINS:
       g_value_set_int (value, object_handle->number_of_bins);
+      break;
+    case PROP_THRESHOLD_LOW:
+      g_value_set_float (value, object_handle->threshold_percentage_low);
+      break;
+    case PROP_THRESHOLD_HIGH:
+      g_value_set_float (value, object_handle->threshold_percentage_high);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -348,9 +369,15 @@ gst_entropy_event_emitter_chain (GstPad * pad, GstObject * object,
   // Check for new minimum
   if (entropy < object_handle->entropy_min) {
     object_handle->entropy_min = entropy;
-    object_handle->low_threshold = (guint) (entropy * 5);
-    object_handle->high_threshold = (guint) (entropy * 15);
+    object_handle->low_threshold =
+        (entropy * object_handle->threshold_percentage_low);
+    object_handle->high_threshold =
+        (entropy * object_handle->threshold_percentage_high);
   }
+
+  g_print ("Entropy: %f Low: %f High: %f\n", entropy,
+      object_handle->low_threshold, object_handle->high_threshold);
+
   // Fill output buffer
   if ((object_handle->in_event_state)
       && (entropy > object_handle->low_threshold)) {
