@@ -95,6 +95,9 @@ struct _GstEntropyEventEmitter
   gfloat low_threshold;
   gfloat high_threshold;
   gfloat entropy_min;
+  gfloat current_entropy;
+  gfloat previous_entropy;
+
 
   // String handling
   gchar text_pre_buffer[100];

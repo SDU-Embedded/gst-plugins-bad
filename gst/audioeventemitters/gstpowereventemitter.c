@@ -104,8 +104,7 @@ static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
     GST_STATIC_CAPS ("audio/x-raw, "
         "format = (string) S16LE, "
         "layout = (string) interleaved, "
-        "rate = (int) [ 8000, 96000 ], "
-        "channels = (int) 2, " "channel-mask = (bitmask) 0x3")
+        "rate = (int) [ 8000, 96000 ], " "channels = (int) 1")
     );
 
 static GstStaticPadTemplate src_factory = GST_STATIC_PAD_TEMPLATE ("src",
@@ -332,6 +331,7 @@ gst_power_event_emitter_chain (GstPad * pad, GstObject * object,
   GstMapInfo audio_map;
 
 
+  //int i;
   // Variables for FFT
   gint16 *audio_data;
 
@@ -352,7 +352,7 @@ gst_power_event_emitter_chain (GstPad * pad, GstObject * object,
   object_handle->text_pre_buffer[0] = '\0';
 
   // Pass chunks of data to check TODO: Currently skips samples that exeed largest multiple of samples_per_fft
-  power = 0;
+  object_handle->current_power = 0;
   for (sample = 0;
       (sample + object_handle->samples_per_fft) < audio_map.size;
       sample += object_handle->samples_per_fft) {
@@ -362,12 +362,22 @@ gst_power_event_emitter_chain (GstPad * pad, GstObject * object,
         (gint16 *) g_memdup (audio_map.data + sample,
         object_handle->samples_per_fft);
 
+    // Flip endian
+//    for (i = 0;i<object_handle->samples_per_fft;i++) {
+//       audio_data[i] = (audio_data[i]>>8) | (audio_data[i]<<8);        
+//   }
+
     // Check data
-    power += gst_power_event_emitter_get_power (object_handle, audio_data);
+    object_handle->current_power +=
+        gst_power_event_emitter_get_power (object_handle, audio_data);
 
     // Free data
     g_free (audio_data);
   }
+
+  // Running average
+  power = (object_handle->current_power + object_handle->previous_power) / 2.0;
+  object_handle->previous_power = object_handle->current_power;
 
   // Check for new maximum
   if (power > object_handle->power_max) {

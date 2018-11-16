@@ -104,8 +104,7 @@ static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
     GST_STATIC_CAPS ("audio/x-raw, "
         "format = (string) S16LE, "
         "layout = (string) interleaved, "
-        "rate = (int) [ 8000, 96000 ], "
-        "channels = (int) 2, " "channel-mask = (bitmask) 0x3")
+        "rate = (int) [ 8000, 96000 ], " "channels = (int) 1")
     );
 
 static GstStaticPadTemplate src_factory = GST_STATIC_PAD_TEMPLATE ("src",
@@ -348,7 +347,7 @@ gst_entropy_event_emitter_chain (GstPad * pad, GstObject * object,
   object_handle->text_pre_buffer[0] = '\0';
 
   // Pass chunks of data to check TODO: Currently skips samples that exeed largest multiple of samples_per_fft
-  entropy = 0;
+  object_handle->current_entropy = 0;
   for (sample = 0;
       (sample + object_handle->samples_per_fft) < audio_map.size;
       sample += object_handle->samples_per_fft) {
@@ -359,12 +358,17 @@ gst_entropy_event_emitter_chain (GstPad * pad, GstObject * object,
         object_handle->samples_per_fft);
 
     // Check data
-    entropy +=
+    object_handle->current_entropy +=
         gst_entropy_event_emitter_get_entropy (object_handle, audio_data);
 
     // Free data
     g_free (audio_data);
   }
+
+  // Running average
+  entropy =
+      (object_handle->current_entropy + object_handle->previous_entropy) / 2.0;
+  object_handle->previous_entropy = object_handle->current_entropy;
 
   // Check for new minimum
   if (entropy < object_handle->entropy_min) {
@@ -374,9 +378,8 @@ gst_entropy_event_emitter_chain (GstPad * pad, GstObject * object,
     object_handle->high_threshold =
         (entropy * object_handle->threshold_percentage_high);
   }
-
-  g_print ("Entropy: %f Low: %f High: %f\n", entropy,
-      object_handle->low_threshold, object_handle->high_threshold);
+  //g_print ("Entropy: %f Low: %f High: %f\n", entropy,
+  //    object_handle->low_threshold, object_handle->high_threshold);
 
   // Fill output buffer
   if ((object_handle->in_event_state)

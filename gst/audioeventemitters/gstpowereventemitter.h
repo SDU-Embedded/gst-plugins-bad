@@ -95,6 +95,8 @@ struct _GstPowerEventEmitter
   gfloat low_threshold;
   gfloat high_threshold;
   gfloat power_max;
+  gfloat current_power;
+  gfloat previous_power;
 
   // String handling
   gchar text_pre_buffer[100];
