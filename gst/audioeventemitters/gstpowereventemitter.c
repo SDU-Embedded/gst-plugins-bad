@@ -123,9 +123,9 @@ static void gst_power_event_emitter_get_property (GObject * object,
     guint prop_id, GValue * value, GParamSpec * pspec);
 static GstFlowReturn gst_power_event_emitter_chain (GstPad * pad,
     GstObject * object, GstBuffer * buf);
-gfloat gst_power_event_emitter_get_power (GstPowerEventEmitter * object_handle,
-    gint16 * audio_data);
-GstFlowReturn gst_power_event_emitter_push_event (GstPowerEventEmitter *
+static gfloat gst_power_event_emitter_get_power (GstPowerEventEmitter *
+    object_handle, gint16 * audio_data);
+static GstFlowReturn gst_power_event_emitter_push_event (GstPowerEventEmitter *
     object_handle);
 
 // Functions
@@ -164,7 +164,7 @@ gst_power_event_emitter_class_init (GstPowerEventEmitterClass * klass)
   gobject_class = (GObjectClass *) klass;
   gstelement_class = (GstElementClass *) klass;
 
-  // Set and get properties
+  // Init callbacks for set and get properties
   gobject_class->set_property = gst_power_event_emitter_set_property;
   gobject_class->get_property = gst_power_event_emitter_get_property;
 
@@ -217,15 +217,21 @@ static void
 gst_power_event_emitter_init (GstPowerEventEmitter * object_handle)
 {
   // Init class variables
+  object_handle->window_size = 0;
+  object_handle->window_function = 0;
+  object_handle->overlap = 0;
   object_handle->number_of_bins = 200;
+  object_handle->threshold_percentage_high = 0.0;
+  object_handle->threshold_percentage_low = 0.0;
   object_handle->samples_per_fft =
       gst_fft_next_fast_length ((2 * object_handle->number_of_bins) - 2);
-
-  // Init event variables
-  object_handle->power_max = 0;
-  object_handle->low_threshold = 0;
-  object_handle->high_threshold = 0;
   object_handle->in_event_state = FALSE;
+  object_handle->low_threshold = 0.0;
+  object_handle->high_threshold = 0.0;
+  object_handle->power_max = 0.0;
+  object_handle->current_power = 0.0;
+  object_handle->previous_power = 0.0;
+  object_handle->text_pre_buffer_length = 0;
 
   // Init sink
   object_handle->sinkpad =
@@ -244,10 +250,11 @@ gst_power_event_emitter_init (GstPowerEventEmitter * object_handle)
   // Allocate GstFFTS16 and GstFFTS16Complex objects
   if (object_handle->fft_ctx)
     gst_fft_s16_free (object_handle->fft_ctx);
-  g_free (object_handle->freq_data);
-
   object_handle->fft_ctx =
       gst_fft_s16_new (object_handle->samples_per_fft, FALSE);
+
+  if (object_handle->fft_ctx)
+    g_free (object_handle->freq_data);
   object_handle->freq_data =
       g_new (GstFFTS16Complex, (object_handle->samples_per_fft / 2) + 1);
 
@@ -330,8 +337,6 @@ gst_power_event_emitter_chain (GstPad * pad, GstObject * object,
   // Variables for input buffer
   GstMapInfo audio_map;
 
-
-  //int i;
   // Variables for FFT
   gint16 *audio_data;
 
@@ -363,16 +368,17 @@ gst_power_event_emitter_chain (GstPad * pad, GstObject * object,
         object_handle->samples_per_fft);
 
     // Flip endian
-//    for (i = 0;i<object_handle->samples_per_fft;i++) {
-//       audio_data[i] = (audio_data[i]>>8) | (audio_data[i]<<8);        
-//   }
+    //    for (i = 0;i<object_handle->samples_per_fft;i++) {
+    //       audio_data[i] = (audio_data[i]>>8) | (audio_data[i]<<8);        
+    //   }
 
     // Check data
     object_handle->current_power +=
         gst_power_event_emitter_get_power (object_handle, audio_data);
 
     // Free data
-    g_free (audio_data);
+    if (audio_data)
+      g_free (audio_data);
   }
 
   // Running average
@@ -408,14 +414,14 @@ gst_power_event_emitter_chain (GstPad * pad, GstObject * object,
   return return_value;
 }
 
-GstFlowReturn
+static GstFlowReturn
 gst_power_event_emitter_push_event (GstPowerEventEmitter * object_handle)
 {
   // Variables for output buffer
   GstBuffer *text_buffer;
-  GstMemory *text_memory;
   GstMapInfo text_map;
   guint i;
+  GstFlowReturn ret = GST_FLOW_ERROR;
 
   // Check buffer length
   object_handle->text_pre_buffer_length =
@@ -423,9 +429,9 @@ gst_power_event_emitter_push_event (GstPowerEventEmitter * object_handle)
   if (object_handle->text_pre_buffer_length) {
 
     // Prepare output buffer
-    text_buffer = gst_buffer_new ();
-    text_memory = gst_allocator_alloc (NULL, 30, NULL);
-    gst_buffer_append_memory (text_buffer, text_memory);
+    text_buffer =
+        gst_buffer_new_allocate (NULL, object_handle->text_pre_buffer_length,
+        NULL);
 
     // Fill output buffer
     gst_buffer_map (text_buffer, &text_map, GST_MAP_WRITE);
@@ -435,15 +441,16 @@ gst_power_event_emitter_push_event (GstPowerEventEmitter * object_handle)
     gst_buffer_unmap (text_buffer, &text_map);
 
     // Push to src pad
-    return gst_pad_push (object_handle->srcpad, text_buffer);
+    ret = gst_pad_push (object_handle->srcpad, text_buffer);
+
+    return ret;
   } else {
     return GST_FLOW_OK;
   }
 
 }
 
-
-gfloat
+static gfloat
 gst_power_event_emitter_get_power (GstPowerEventEmitter * object_handle,
     gint16 * audio_data)
 {
