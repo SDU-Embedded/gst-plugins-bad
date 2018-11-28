@@ -253,7 +253,7 @@ gst_power_event_emitter_init (GstPowerEventEmitter * object_handle)
   object_handle->fft_ctx =
       gst_fft_s16_new (object_handle->samples_per_fft, FALSE);
 
-  if (object_handle->fft_ctx)
+  if (object_handle->freq_data)
     g_free (object_handle->freq_data);
   object_handle->freq_data =
       g_new (GstFFTS16Complex, (object_handle->samples_per_fft / 2) + 1);
@@ -363,14 +363,7 @@ gst_power_event_emitter_chain (GstPad * pad, GstObject * object,
       sample += object_handle->samples_per_fft) {
 
     // Copy data
-    audio_data =
-        (gint16 *) g_memdup (audio_map.data + sample,
-        object_handle->samples_per_fft);
-
-    // Flip endian
-    //    for (i = 0;i<object_handle->samples_per_fft;i++) {
-    //       audio_data[i] = (audio_data[i]>>8) | (audio_data[i]<<8);        
-    //   }
+    audio_data = (gint16 *) g_memdup (audio_map.data + sample, object_handle->samples_per_fft * 2);     // x2 since size is given in 8-bit bytes
 
     // Check data
     object_handle->current_power +=
