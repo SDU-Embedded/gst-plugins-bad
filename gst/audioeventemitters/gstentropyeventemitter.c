@@ -81,7 +81,8 @@ enum
   PROP_OVERLAP,
   PROP_NUMBER_OF_BINS,
   PROP_THRESHOLD_LOW,
-  PROP_THRESHOLD_HIGH
+  PROP_THRESHOLD_HIGH,
+  PROP_START_MAX_VALUE
 };
 
 // Enumeration of the options for the window function property
@@ -128,6 +129,7 @@ gfloat gst_entropy_event_emitter_get_entropy (GstEntropyEventEmitter *
     object_handle, gint16 * audio_data);
 GstFlowReturn gst_entropy_event_emitter_push_event (GstEntropyEventEmitter *
     object_handle);
+static void updateMinimum (GstEntropyEventEmitter * object_handle);
 
 // Functions
 static GType
@@ -198,6 +200,11 @@ gst_entropy_event_emitter_class_init (GstEntropyEventEmitterClass * klass)
   g_object_class_install_property (gobject_class, PROP_THRESHOLD_LOW,
       g_param_spec_float ("threshold_low", "Threshold_low",
           "Sets the threshold for offset", 0.0, 100.0, 5.0, G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class, PROP_START_MAX_VALUE,
+      g_param_spec_float ("start_min_value", "Start min value",
+          "Sets the start minimum value", 0.0, 1000000.0, 10000.0,
+          G_PARAM_READWRITE));
   // Set metadata
   gst_element_class_set_static_metadata (gstelement_class,
       "Entropy event emitter", "Feature extraction",
@@ -279,9 +286,15 @@ gst_entropy_event_emitter_set_property (GObject * object, guint prop_id,
       break;
     case PROP_THRESHOLD_LOW:
       object_handle->threshold_percentage_low = g_value_get_float (value);
+      updateMinimum (object_handle);
       break;
     case PROP_THRESHOLD_HIGH:
       object_handle->threshold_percentage_high = g_value_get_float (value);
+      updateMinimum (object_handle);
+      break;
+    case PROP_START_MAX_VALUE:
+      object_handle->entropy_min = g_value_get_float (value);
+      updateMinimum (object_handle);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -313,6 +326,9 @@ gst_entropy_event_emitter_get_property (GObject * object, guint prop_id,
       break;
     case PROP_THRESHOLD_HIGH:
       g_value_set_float (value, object_handle->threshold_percentage_high);
+      break;
+    case PROP_START_MAX_VALUE:
+      g_value_set_float (value, object_handle->entropy_min);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -373,10 +389,7 @@ gst_entropy_event_emitter_chain (GstPad * pad, GstObject * object,
   // Check for new minimum
   if (entropy < object_handle->entropy_min) {
     object_handle->entropy_min = entropy;
-    object_handle->low_threshold =
-        (entropy * object_handle->threshold_percentage_low);
-    object_handle->high_threshold =
-        (entropy * object_handle->threshold_percentage_high);
+    updateMinimum (object_handle);
   }
   //g_print ("Entropy: %f Low: %f High: %f\n", entropy,
   //    object_handle->low_threshold, object_handle->high_threshold);
@@ -398,6 +411,15 @@ gst_entropy_event_emitter_chain (GstPad * pad, GstObject * object,
   gst_buffer_unmap (input_buffer, &audio_map);
 
   return return_value;
+}
+
+static void
+updateMinimum (GstEntropyEventEmitter * object_handle)
+{
+  object_handle->low_threshold =
+      (object_handle->entropy_min * object_handle->threshold_percentage_low);
+  object_handle->high_threshold =
+      (object_handle->entropy_min * object_handle->threshold_percentage_high);
 }
 
 GstFlowReturn
