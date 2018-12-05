@@ -81,7 +81,8 @@ enum
   PROP_OVERLAP,
   PROP_NUMBER_OF_BINS,
   PROP_THRESHOLD_LOW,
-  PROP_THRESHOLD_HIGH
+  PROP_THRESHOLD_HIGH,
+  PROP_START_MAX_VALUE
 };
 
 // Enumeration of the options for the window function property
@@ -127,6 +128,7 @@ static gfloat gst_power_event_emitter_get_power (GstPowerEventEmitter *
     object_handle, gint16 * audio_data);
 static GstFlowReturn gst_power_event_emitter_push_event (GstPowerEventEmitter *
     object_handle);
+static void updateThresholds (GstPowerEventEmitter * object_handle);
 
 // Functions
 static GType
@@ -194,6 +196,10 @@ gst_power_event_emitter_class_init (GstPowerEventEmitterClass * klass)
       g_param_spec_float ("threshold_low", "Threshold_low",
           "Sets the percentage threshold for offset", 0.0, 100.0, 1.0,
           G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class, PROP_START_MAX_VALUE,
+      g_param_spec_float ("start_max_value", "Start max value",
+          "Sets the start max value", 0.0, 1000000.0, 0.0, G_PARAM_READWRITE));
 
   g_object_class_install_property (gobject_class, PROP_NUMBER_OF_BINS,
       g_param_spec_uint ("bins", "Number of bins",
@@ -289,9 +295,15 @@ gst_power_event_emitter_set_property (GObject * object, guint prop_id,
       break;
     case PROP_THRESHOLD_LOW:
       object_handle->threshold_percentage_low = g_value_get_float (value);
+      updateThresholds (object_handle);
       break;
     case PROP_THRESHOLD_HIGH:
       object_handle->threshold_percentage_high = g_value_get_float (value);
+      updateThresholds (object_handle);
+      break;
+    case PROP_START_MAX_VALUE:
+      object_handle->power_max = g_value_get_float (value);
+      updateThresholds (object_handle);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -323,6 +335,9 @@ gst_power_event_emitter_get_property (GObject * object, guint prop_id,
       break;
     case PROP_THRESHOLD_HIGH:
       g_value_set_float (value, object_handle->threshold_percentage_high);
+      break;
+    case PROP_START_MAX_VALUE:
+      g_value_set_float (value, object_handle->power_max);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -381,10 +396,7 @@ gst_power_event_emitter_chain (GstPad * pad, GstObject * object,
   // Check for new maximum
   if (power > object_handle->power_max) {
     object_handle->power_max = power;
-    object_handle->low_threshold =
-        power * object_handle->threshold_percentage_low / 100.0;
-    object_handle->high_threshold =
-        power * object_handle->threshold_percentage_high / 100.0;
+    updateThresholds (object_handle);
     //g_print ("Setting new max: %f Low: %f High: %f\n", object_handle->power_max,object_handle->threshold_percentage_low, object_handle->threshold_percentage_high);
   }
   //g_print("Power: %f Low: %f High: %f\n", power, object_handle->low_threshold, object_handle->high_threshold);
@@ -405,6 +417,17 @@ gst_power_event_emitter_chain (GstPad * pad, GstObject * object,
   gst_buffer_unmap (input_buffer, &audio_map);
 
   return return_value;
+}
+
+static void
+updateThresholds (GstPowerEventEmitter * object_handle)
+{
+  object_handle->low_threshold =
+      object_handle->power_max * object_handle->threshold_percentage_low /
+      100.0;
+  object_handle->high_threshold =
+      object_handle->power_max * object_handle->threshold_percentage_high /
+      100.0;
 }
 
 static GstFlowReturn
