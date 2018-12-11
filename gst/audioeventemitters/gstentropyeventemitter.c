@@ -409,7 +409,7 @@ gst_entropy_event_emitter_chain (GstPad * pad, GstObject * object,
 
   // Clean up
   gst_buffer_unmap (input_buffer, &audio_map);
-
+  gst_buffer_unref (input_buffer);
   return return_value;
 }
 
