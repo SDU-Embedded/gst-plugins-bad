@@ -400,16 +400,20 @@ gst_power_event_emitter_chain (GstPad * pad, GstObject * object,
     //g_print ("Setting new max: %f Low: %f High: %f\n", object_handle->power_max,object_handle->threshold_percentage_low, object_handle->threshold_percentage_high);
   }
   //g_print("Power: %f Low: %f High: %f\n", power, object_handle->low_threshold, object_handle->high_threshold);
+  //g_print("Power: %f\n", power);
+  sprintf ((char *) object_handle->text_pre_buffer, "%f\n", power);
 
   // Fill output buffer
-  if ((object_handle->in_event_state) && (power < object_handle->low_threshold)) {
-    object_handle->in_event_state = FALSE;
-    sprintf ((char *) object_handle->text_pre_buffer, "offset\n");
-  } else if ((!object_handle->in_event_state)
-      && (power > object_handle->high_threshold)) {
-    object_handle->in_event_state = TRUE;
-    sprintf ((char *) object_handle->text_pre_buffer, "onset\n");
-  }
+  //if ((object_handle->in_event_state) && (power < object_handle->low_threshold)) {
+  //  object_handle->in_event_state = FALSE;
+  //  //g_print("Offset case\n");
+  //  sprintf ((char *) object_handle->text_pre_buffer, "offset\n");
+  //} else if ((!object_handle->in_event_state)
+  //    && (power > object_handle->high_threshold)) {
+  //  object_handle->in_event_state = TRUE;
+  //  //g_print("Onset case\n");
+  //  sprintf ((char *) object_handle->text_pre_buffer, "onset\n");
+  //}
   // Push event
   return_value = gst_power_event_emitter_push_event (object_handle);
 

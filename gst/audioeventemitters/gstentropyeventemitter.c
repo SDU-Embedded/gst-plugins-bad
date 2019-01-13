@@ -394,16 +394,18 @@ gst_entropy_event_emitter_chain (GstPad * pad, GstObject * object,
   //g_print ("Entropy: %f Low: %f High: %f\n", entropy,
   //    object_handle->low_threshold, object_handle->high_threshold);
 
+  sprintf ((char *) object_handle->text_pre_buffer, "%f\n", entropy);
+
   // Fill output buffer
-  if ((object_handle->in_event_state)
-      && (entropy > object_handle->low_threshold)) {
-    object_handle->in_event_state = FALSE;
-    sprintf ((char *) object_handle->text_pre_buffer, "offset\n");
-  } else if ((!object_handle->in_event_state)
-      && (entropy < object_handle->high_threshold)) {
-    object_handle->in_event_state = TRUE;
-    sprintf ((char *) object_handle->text_pre_buffer, "onset\n");
-  }
+  //if ((object_handle->in_event_state)
+  //    && (entropy > object_handle->low_threshold)) {
+  //  object_handle->in_event_state = FALSE;
+  //  sprintf ((char *) object_handle->text_pre_buffer, "offset\n");
+  //} else if ((!object_handle->in_event_state)
+  //    && (entropy < object_handle->high_threshold)) {
+  //  object_handle->in_event_state = TRUE;
+  //  sprintf ((char *) object_handle->text_pre_buffer, "onset\n");
+  //}
   // Push event
   return_value = gst_entropy_event_emitter_push_event (object_handle);
 
