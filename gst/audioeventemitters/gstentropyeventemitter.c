@@ -190,20 +190,22 @@ gst_entropy_event_emitter_class_init (GstEntropyEventEmitterClass * klass)
 
   g_object_class_install_property (gobject_class, PROP_NUMBER_OF_BINS,
       g_param_spec_uint ("bins", "Number of bins",
-          "Sets the number of frequency bins in FFT", 50, 1000, 100,
+          "Sets the number of frequency bins in FFT", 64, 1024, 256,
           G_PARAM_READWRITE));
 
   g_object_class_install_property (gobject_class, PROP_THRESHOLD_HIGH,
       g_param_spec_float ("threshold_high", "Threshold_high",
-          "Sets the threshold for onset", 0.0, 100.0, 15.0, G_PARAM_READWRITE));
+          "Sets the threshold for onset (deprecated)", 0.0, 100.0, 15.0,
+          G_PARAM_READWRITE));
 
   g_object_class_install_property (gobject_class, PROP_THRESHOLD_LOW,
       g_param_spec_float ("threshold_low", "Threshold_low",
-          "Sets the threshold for offset", 0.0, 100.0, 5.0, G_PARAM_READWRITE));
+          "Sets the threshold for offset (deprecated)", 0.0, 100.0, 5.0,
+          G_PARAM_READWRITE));
 
   g_object_class_install_property (gobject_class, PROP_START_MAX_VALUE,
       g_param_spec_float ("start_min_value", "Start min value",
-          "Sets the start minimum value", 0.0, 1000000.0, 10000.0,
+          "Sets the start minimum value (deprecated)", 0.0, 1000000.0, 10000.0,
           G_PARAM_READWRITE));
   // Set metadata
   gst_element_class_set_static_metadata (gstelement_class,
@@ -273,16 +275,16 @@ gst_entropy_event_emitter_set_property (GObject * object, guint prop_id,
 
   switch (prop_id) {
     case PROP_WINDOW_SIZE:
-      object_handle->window_size = g_value_get_int (value);
+      object_handle->window_size = g_value_get_uint (value);
       break;
     case PROP_WINDOW_FUNCTION:
-      object_handle->window_function = g_value_get_int (value);
+      object_handle->window_function = g_value_get_uint (value);
       break;
     case PROP_OVERLAP:
-      object_handle->overlap = g_value_get_int (value);
+      object_handle->overlap = g_value_get_uint (value);
       break;
     case PROP_NUMBER_OF_BINS:
-      object_handle->number_of_bins = g_value_get_int (value);
+      object_handle->number_of_bins = g_value_get_uint (value);
       break;
     case PROP_THRESHOLD_LOW:
       object_handle->threshold_percentage_low = g_value_get_float (value);
@@ -310,16 +312,16 @@ gst_entropy_event_emitter_get_property (GObject * object, guint prop_id,
 
   switch (prop_id) {
     case PROP_WINDOW_SIZE:
-      g_value_set_int (value, object_handle->window_size);
+      g_value_set_uint (value, object_handle->window_size);
       break;
     case PROP_WINDOW_FUNCTION:
-      g_value_set_int (value, object_handle->window_function);
+      g_value_set_uint (value, object_handle->window_function);
       break;
     case PROP_OVERLAP:
-      g_value_set_int (value, object_handle->overlap);
+      g_value_set_uint (value, object_handle->overlap);
       break;
     case PROP_NUMBER_OF_BINS:
-      g_value_set_int (value, object_handle->number_of_bins);
+      g_value_set_uint (value, object_handle->number_of_bins);
       break;
     case PROP_THRESHOLD_LOW:
       g_value_set_float (value, object_handle->threshold_percentage_low);
@@ -481,9 +483,9 @@ gst_entropy_event_emitter_get_entropy (GstEntropyEventEmitter * object_handle,
   entropy = 0;
   geometric_mean = 1;
   aritmetic_mean = 0;
-  for (bin = 0; bin < object_handle->number_of_bins; bin++) {
-    f_real = (gfloat) fdata[1 + bin].r / 512.0;
-    f_imaginary = (gfloat) fdata[1 + bin].i / 512.0;
+  for (bin = 0; bin < object_handle->samples_per_fft; bin++) {
+    f_real = (gfloat) fdata[1 + bin].r / 65536;
+    f_imaginary = (gfloat) fdata[1 + bin].i / 65536;
     intensity = sqrt (f_real * f_real + f_imaginary * f_imaginary);
 
     // Calculate means
@@ -492,8 +494,8 @@ gst_entropy_event_emitter_get_entropy (GstEntropyEventEmitter * object_handle,
   }
 
   // Calculate entropy
-  geometric_mean = pow (geometric_mean, 1 / object_handle->number_of_bins);
-  aritmetic_mean /= object_handle->number_of_bins;
+  geometric_mean = pow (geometric_mean, 1 / object_handle->samples_per_fft);
+  aritmetic_mean /= object_handle->samples_per_fft;
   entropy = geometric_mean / aritmetic_mean;
 
   //g_print("Entropy: %f\n", entropy);

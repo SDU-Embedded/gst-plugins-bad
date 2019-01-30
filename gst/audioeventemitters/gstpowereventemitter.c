@@ -204,7 +204,7 @@ gst_power_event_emitter_class_init (GstPowerEventEmitterClass * klass)
 
   g_object_class_install_property (gobject_class, PROP_NUMBER_OF_BINS,
       g_param_spec_uint ("bins", "Number of bins",
-          "Sets the number of frequency bins in FFT", 50, 1000, 100,
+          "Sets the number of frequency bins in FFT", 64, 1024, 256,
           G_PARAM_READWRITE));
 
   // Set metadata
