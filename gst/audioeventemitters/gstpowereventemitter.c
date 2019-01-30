@@ -491,11 +491,11 @@ gst_power_event_emitter_get_power (GstPowerEventEmitter * object_handle,
   // For each bin in the fft calculate intensity and add to power
   power = 0;
   for (bin = 0; bin < object_handle->samples_per_fft; bin++) {
-    f_real = (gfloat) fdata[1 + bin].r / 65536;
-    f_imaginary = (gfloat) fdata[1 + bin].i / 65536;
+    f_real = (gfloat) fdata[1 + bin].r / 512.0;
+    f_imaginary = (gfloat) fdata[1 + bin].i / 512.0;
     power += sqrt (f_real * f_real + f_imaginary * f_imaginary);
   }
-  power = power / object_handle->samples_per_fft * 100;
+  power = power / object_handle->samples_per_fft;
   return power;
 }
 

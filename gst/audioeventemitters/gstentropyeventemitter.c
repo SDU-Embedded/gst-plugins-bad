@@ -484,8 +484,8 @@ gst_entropy_event_emitter_get_entropy (GstEntropyEventEmitter * object_handle,
   geometric_mean = 1;
   aritmetic_mean = 0;
   for (bin = 0; bin < object_handle->samples_per_fft; bin++) {
-    f_real = (gfloat) fdata[1 + bin].r / 65536;
-    f_imaginary = (gfloat) fdata[1 + bin].i / 65536;
+    f_real = (gfloat) fdata[1 + bin].r / 512.0;
+    f_imaginary = (gfloat) fdata[1 + bin].i / 512.0;
     intensity = sqrt (f_real * f_real + f_imaginary * f_imaginary);
 
     // Calculate means
