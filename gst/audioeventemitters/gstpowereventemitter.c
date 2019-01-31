@@ -508,7 +508,7 @@ gst_power_event_emitter_get_power (GstPowerEventEmitter * object_handle,
     f_imaginary = (gfloat) fdata[1 + bin].i / 512.0;
     power += sqrt (f_real * f_real + f_imaginary * f_imaginary);
   }
-  power = power / object_handle->number_of_bins;
+  power = power / object_handle->number_of_bins * 100;
   return power;
 }
 
