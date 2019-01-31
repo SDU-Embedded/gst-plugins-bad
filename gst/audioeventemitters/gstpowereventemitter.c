@@ -105,7 +105,7 @@ static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
     GST_STATIC_CAPS ("audio/x-raw, "
         "format = (string) S16LE, "
         "layout = (string) interleaved, "
-        "rate = (int) [ 8000, 96000 ], " "channels = (int) 1")
+        "rate = (int) [ 8000, 1000000 ], " "channels = (int) 1")
     );
 
 static GstStaticPadTemplate src_factory = GST_STATIC_PAD_TEMPLATE ("src",
